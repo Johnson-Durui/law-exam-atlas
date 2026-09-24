@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.zip
+.publish/
+snapshots/
+verification.json
+data/corpus.json
+data/corpus.js
+data/extraction_report.json
+法硕真题关系网_*.html
+

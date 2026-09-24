@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>法硕关系网 · 真题、知识逻辑与 2027 考向</title>
+  <meta name="description" content="沿真题探索法硕知识联系，查看五科审题路线与2027备考考向分支。预测为复习假设，可展开依据与练习。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#detail">跳到题目详情</a>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">法</span><strong>法硕真题关系网</strong><span class="edition">EXAM ATLAS</span></div>
+    <nav class="view-tabs" aria-label="视图切换"><button data-mode="graph" aria-pressed="false">全景</button><button data-mode="split" aria-pressed="true">工作台</button><button data-mode="list" aria-pressed="false">题库</button></nav>
+    <button class="text-button" id="coverage-button">来源与覆盖</button>
+  </header>
+  <div class="summary-bar"><p id="summary" role="status">正在读取本地真题…</p><span>考点连线为关键词候选关联 · 点击节点查看依据</span></div>
+
+  <main id="workspace" data-mode="graph">
+    <aside id="catalog" class="catalog-panel" aria-label="真题目录与筛选">
+      <div class="catalog-head"><div><span class="eyebrow">LAW / INDEX</span><h1 id="catalog-title">真题目录</h1></div><span id="catalog-count">—</span></div>
+      <section class="filters" aria-label="真题筛选">
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索题干、考点或年份" aria-label="搜索题干、考点或年份"></label>
+        <div class="filter-grid">
+          <label>科目<select id="subject"><option value="">全部科目</option></select></label>
+          <label>题型<select id="type"><option value="">全部题型</option></select></label>
+          <label>起始<select id="from" aria-label="起始年份"></select></label>
+          <label>结束<select id="to" aria-label="结束年份"></select></label>
+        </div>
+        <button class="text-button clear-button" id="clear">清除筛选</button>
+      </section>
+      <div id="catalog-list" class="catalog-list" aria-label="筛选后的真题"></div>
+      <nav class="catalog-pagination" aria-label="真题目录分页"><button id="catalog-prev" aria-label="上一页">←</button><span id="catalog-page">1 / 1</span><button id="catalog-next" aria-label="下一页">→</button></nav>
+    </aside>
+
+    <section class="graph-panel" aria-label="试题与考点关系网络">
+      <div class="panel-head">
+        <div><span class="eyebrow">LAW / CONNECTIONS</span><h2 id="graph-title">法硕关系网</h2><p id="graph-subtitle">沿着问题，读懂联系</p></div>
+        <label class="full-search"><span class="sr-only">搜索全屏关系网</span><input id="full-search" type="search" placeholder="搜索题干、考点或年份"></label>
+        <div class="graph-actions"><button id="graph-filters" class="only-panorama" aria-expanded="false">筛选</button><button id="fit">适配</button><button id="reset">重排</button><button id="labels" aria-pressed="false">标签</button><button id="export" title="下载当前关系图 SVG">导出</button><button id="fullscreen" aria-pressed="false">进入全屏</button><button id="back-workbench" class="only-panorama">工作台</button></div>
+      </div>
+      <div class="atlas-bar">
+        <nav class="atlas-tabs" aria-label="关系网内容"><button id="layer-exams" aria-pressed="false">真题全网</button><button id="layer-learning" aria-pressed="false">知识逻辑</button><button id="layer-forecast" aria-pressed="true">2027 考向 <span>20</span></button></nav>
+        <div id="study-controls" class="study-controls"><label class="sr-only" for="study-subject">考向或路径科目</label><select id="study-subject"><option value="">五科全览</option></select><label class="sr-only" for="study-scenario">预测情景</label><select id="study-scenario"><option value="">全部情景</option></select><button id="study-back" hidden>← 返回全览</button></div>
+      </div>
+      <p id="study-context" class="study-context">复习假设 · 点击分支展开</p>
+      <div id="graph-host" aria-label="可拖拽和缩放的真题关系图"></div>
+      <div id="graph-empty" class="empty-overlay" hidden>没有符合筛选条件的真题。<button class="text-button" id="empty-clear">清除筛选</button></div>
+      <section id="peek-card" class="peek-card" aria-label="节点快速预览" hidden>
+        <button id="peek-close" class="peek-close" aria-label="关闭快速预览">×</button><span class="eyebrow">QUICK LOOK</span><h3 id="peek-title"></h3><div id="peek-body"></div><button id="peek-open" class="peek-open">查看完整详情</button>
+      </section>
+      <div class="legend"><span class="eyebrow">科目</span><div><span><i style="--color:#bb633d"></i>刑法</span><span><i style="--color:#345c99"></i>民法</span><span><i style="--color:#6c658e"></i>法理</span><span><i style="--color:#747780"></i>宪法</span><span><i style="--color:#9a6479"></i>法制史</span></div></div>
+      <div class="relation-options" role="group" aria-label="显示关系"><label><input type="checkbox" data-relation="候选考点" checked>考点</label><label><input type="checkbox" data-relation="科目" checked>科目</label><label><input type="checkbox" data-relation="年份">年份</label><label><input type="checkbox" data-relation="题型">题型</label></div>
+      <div class="graph-caption"><span id="graph-stats">—</span><span>滚轮缩放 · 拖动画布 · 点击节点或连线</span></div>
+      <p id="fullscreen-status" class="fullscreen-status" role="status" hidden></p>
+    </section>
+
+    <aside id="detail" class="detail-panel" aria-label="节点与关系详情" tabindex="-1"><button id="graph-detail-close" class="only-panorama" aria-label="关闭题目详情">关闭详情 ×</button><div id="detail-content"></div></aside>
+    <section id="list-panel" class="list-panel" aria-label="筛选后的真题列表" hidden><div class="list-heading"><h2>真题列表</h2><span id="list-count"></span></div><div id="question-list"></div><button id="load-more" class="load-more">继续显示</button></section>
+  </main>
+  <footer class="bottom-bar"><span id="corpus-status">本地原卷 · 来源可追溯</span><span id="selection-status">选择一个节点开始探索</span><a href="data/graph.json" download>下载图谱数据</a></footer>
+  <dialog id="coverage-dialog" aria-labelledby="coverage-title"><div class="dialog-head"><h2 id="coverage-title">来源与覆盖</h2><button id="close-dialog" aria-label="关闭来源面板">×</button></div><p class="notice">题目由本地 PDF 自动提取。原卷不可读、题号缺失、解析替代等情况列在这里；没有补造题干，也没有将押题卷混入题库。</p><div id="coverage-content"></div></dialog>
+  <div id="error-banner" role="alert" hidden></div>
+  <script src="data/graph.js"></script><script src="data/learning.js"></script><script src="graph-model.js"></script><script src="learning-model.js"></script><script src="graph-view.js"></script><script src="app.js"></script>
+</body>
+</html>
