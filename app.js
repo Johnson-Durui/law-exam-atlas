@@ -103,7 +103,7 @@
     const q=label(a)==='Question'?a:label(b)==='Question'?b:null;if(q)root.append(sourceLink(q.attributes.sourceFile,q.attributes.sourcePage));
   }
   function studyDetail(n){
-    const a=n.attributes,kind=label(n),root=heading(kinds[kind],n.name,n.summary);
+    const a=n.attributes,kind=label(n),root=heading(kinds[kind],n.name,kind==='Prediction'?null:n.summary);
     if(kind==='Prediction'){
       root.append(badge('2027 复习假设',true),badge(a.subject),badge(learning.scenarios.get(a.scenarioId).name));
       root.append(el('h3','','可能怎么问'),el('p','intro',a.questionTypes.join(' / ')));

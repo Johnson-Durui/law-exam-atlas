@@ -304,11 +304,11 @@
       const boundsAt = zoom => {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         this.nodes.forEach(node => {
-          const textWidth = Array.from(node.name).reduce((sum, char) => sum + (char.charCodeAt(0) > 255 ? 13.5 : 7.7), 0);
-          minX = Math.min(minX, (node.x - node.r) * zoom);
-          maxX = Math.max(maxX, (node.x + node.r) * zoom + 7 + textWidth);
-          minY = Math.min(minY, node.y * zoom - 10);
-          maxY = Math.max(maxY, node.y * zoom + 10);
+          const label = this._logicLabelLayout(node, zoom, 0, 0);
+          minX = Math.min(minX, (node.x - node.r) * zoom, label.l);
+          maxX = Math.max(maxX, (node.x + node.r) * zoom, label.r);
+          minY = Math.min(minY, (node.y - node.r) * zoom, label.t);
+          maxY = Math.max(maxY, (node.y + node.r) * zoom, label.b);
         });
         return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
       };
@@ -321,7 +321,7 @@
         if (bounds.width <= availableWidth && bounds.height <= availableHeight) low = mid;
         else high = mid;
       }
-      const zoom = clamp(low, 0.04, 3.5);
+      const zoom = clamp(this.width < 520 ? Math.max(low, 0.55) : low, 0.04, 3.5);
       const bounds = boundsAt(zoom);
       this.camera.zoom = zoom;
       this.camera.x = this.width / 2 - (bounds.minX + bounds.maxX) / 2;
@@ -358,7 +358,7 @@
         const geometry = this._edgeGeometry(edge);
         const active = !selected.active || selected.edges.has(edge.id);
         const stroke = selected.active && active ? '#ef744a' : (dense ? '#aeb7bb' : '#9ba6ab');
-        const opacity = selected.active ? (active ? 0.82 : (dense ? 0.025 : 0.075)) : (dense ? 0.12 : 0.26);
+        const opacity = selected.active ? (active ? 0.82 : (dense ? 0.025 : logic ? 0.28 : 0.075)) : (dense ? 0.12 : 0.26);
         const dash = edge.inferred ? ' stroke-dasharray="5 5"' : '';
         const widthValue = dense ? (active ? 0.78 : 0.42) : (active ? 1.2 : 0.65);
         const marker = logic && !geometry.loop ? ' marker-end="url(#logic-arrow)"' : '';
@@ -371,12 +371,22 @@
       });
       this.nodes.forEach(node => {
         const active = !selected.active || selected.nodes.has(node.id);
-        const opacity = selected.active ? (active ? 1 : (dense ? 0.09 : 0.15)) : (dense ? 0.9 : 0.94);
+        const opacity = selected.active ? (active ? 1 : (dense ? 0.09 : logic ? 0.68 : 0.15)) : (dense ? 0.9 : 0.94);
         parts.push(`<circle cx="${node.x.toFixed(2)}" cy="${node.y.toFixed(2)}" r="${node.r}" fill="${node.color}" opacity="${opacity}"/>`);
         if (this.showLabels && visibleLabels.has(node.id)) {
           const labelSize = logic ? 13.5 : dense ? 5.8 : 10;
-          const labelOpacity = selected.active ? (active ? 0.96 : 0.04) : (dense ? 0.82 : opacity);
-          parts.push(`<text x="${(node.x + node.r + (dense ? 2.2 : logic ? 7 : 4) / camera.zoom).toFixed(2)}" y="${(node.y + 2.5 / camera.zoom).toFixed(2)}" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="${labelSize / camera.zoom}" fill="${dense ? '#36434a' : logic ? '#26343c' : '#4d585e'}" opacity="${labelOpacity}">${esc(logic ? node.name : (node.displayName || node.name))}</text>`);
+          const labelOpacity = selected.active ? (active ? 0.96 : logic ? 0.72 : 0.04) : (dense ? 0.82 : opacity);
+          if (logic) {
+            const label = this._logicLabelLayout(node);
+            label.lines.forEach((line, index) => {
+              const worldX = (label.x - camera.x) / camera.zoom;
+              const worldY = (label.lineY(index) - camera.y) / camera.zoom;
+              const weight = this.selected && this.selected.type === 'node' && this.selected.item === node ? ' font-weight="600"' : '';
+              parts.push(`<text x="${worldX.toFixed(2)}" y="${worldY.toFixed(2)}" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="${labelSize / camera.zoom}" fill="#26343c" opacity="${labelOpacity}"${weight}>${esc(line)}</text>`);
+            });
+          } else {
+            parts.push(`<text x="${(node.x + node.r + (dense ? 2.2 : 4) / camera.zoom).toFixed(2)}" y="${(node.y + 2.5 / camera.zoom).toFixed(2)}" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="${labelSize / camera.zoom}" fill="${dense ? '#36434a' : '#4d585e'}" opacity="${labelOpacity}">${esc(node.displayName || node.name)}</text>`);
+          }
         }
       });
       parts.push('</g></svg>');
@@ -731,7 +741,7 @@
       const baseWidth = (dense ? 0.4 : 0.62) / z;
       this.edges.forEach(edge => {
         const active = !selection.active || selection.edges.has(edge.id);
-        ctx.globalAlpha = selection.active ? (active ? 0.84 : (dense ? 0.025 : 0.06)) : (dense ? 0.12 : 0.25);
+        ctx.globalAlpha = selection.active ? (active ? 0.84 : (dense ? 0.025 : logic ? 0.28 : 0.06)) : (dense ? 0.12 : 0.25);
         ctx.strokeStyle = selection.active && active ? '#ef744a' : (dense ? '#aeb7bb' : '#929da3');
         ctx.lineWidth = active ? (dense ? 0.78 : 1.05) / z : baseWidth;
         ctx.setLineDash(edge.inferred ? [4 / z, 4 / z] : []);
@@ -768,7 +778,7 @@
       this.nodes.forEach(node => {
         if (node.x < viewport.left || node.x > viewport.right || node.y < viewport.top || node.y > viewport.bottom) return;
         const active = !selection.active || selection.nodes.has(node.id);
-        ctx.globalAlpha = selection.active ? (active ? 1 : (dense ? 0.09 : 0.13)) : (dense ? 0.9 : 0.96);
+        ctx.globalAlpha = selection.active ? (active ? 1 : (dense ? 0.09 : logic ? 0.68 : 0.13)) : (dense ? 0.9 : 0.96);
         ctx.fillStyle = node.color;
         ctx.beginPath(); ctx.arc(node.x, node.y, node.r, 0, TAU); ctx.fill();
         const highlighted = (this.selected && this.selected.type === 'node' && this.selected.item === node) || this._hover === node;
@@ -784,14 +794,20 @@
         this._labelNodes(selection).forEach(node => {
           const active = !selection.active || selection.nodes.has(node.id);
           const chosen = this.selected && this.selected.type === 'node' && this.selected.item === node;
-          ctx.globalAlpha = selection.active ? (active ? 0.96 : (dense ? 0.03 : 0.06)) : (dense ? 0.82 : 0.78);
+          ctx.globalAlpha = selection.active ? (active ? 0.96 : (dense ? 0.03 : logic ? 0.72 : 0.06)) : (dense ? 0.82 : 0.78);
           ctx.fillStyle = dense ? '#36434a' : '#445158';
           if (dense && chosen) ctx.font = `600 ${9.2 / z}px Arial, "Microsoft YaHei", sans-serif`;
           else if (dense) ctx.font = `${5.8 / z}px Arial, "Microsoft YaHei", sans-serif`;
-          else if (logic && chosen) ctx.font = `600 ${14.5 / z}px Arial, "Microsoft YaHei", sans-serif`;
+          else if (logic && chosen) ctx.font = `600 ${13.5 / z}px Arial, "Microsoft YaHei", sans-serif`;
           else if (logic) ctx.font = `${13.5 / z}px Arial, "Microsoft YaHei", sans-serif`;
           ctx.textAlign = 'left';
-          ctx.fillText(logic ? node.name : (node.displayName || node.name), node.x + node.r + (dense ? 2.2 : logic ? 7 : 4) / z, node.y);
+          if (logic) {
+            const label = this._logicLabelLayout(node);
+            const worldX = (label.x - this.camera.x) / z;
+            label.lines.forEach((line, index) => ctx.fillText(line, worldX, (label.lineY(index) - this.camera.y) / z));
+          } else {
+            ctx.fillText(node.displayName || node.name, node.x + node.r + (dense ? 2.2 : 4) / z, node.y);
+          }
         });
       }
       ctx.globalAlpha = 1;
@@ -826,25 +842,53 @@
     }
 
     _logicLabelNodes(selection) {
-      const z = this.camera.zoom;
       const chosen = this.selected && this.selected.type === 'node' ? this.selected.item : null;
       const ordered = [...this.nodes].sort((a, b) => (a === chosen ? -1 : b === chosen ? 1 : a.index - b.index));
-      const visible = [], regions = [];
+      const visible = [], regions = [], occupied = [];
       for (const node of ordered) {
-        const active = !selection.active || selection.nodes.has(node.id);
-        if (!active && this.selected) continue;
-        const fontSize = node === chosen ? 14.5 : 13.5;
-        const text = node.name;
-        const x = node.x * z + this.camera.x + node.r * z + 7;
-        const y = node.y * z + this.camera.y;
-        const width = Array.from(text).reduce((sum, char) => sum + (char.charCodeAt(0) > 255 ? fontSize : fontSize * 0.57), 0);
-        const box = { l: x - 2, r: x + width + 3, t: y - fontSize * 0.68, b: y + fontSize * 0.68 };
-        if (box.r < 0 || box.l > this.width || box.b < 0 || box.t > this.height) continue;
-        visible.push(node); regions.push({ node, ...box });
+        const label = this._logicLabelLayout(node);
+        const box = { l: label.l, r: label.r, t: label.t, b: label.b };
+        if (box.l < 2 || box.r > this.width - 2 || box.t < 2 || box.b > this.height - 2) continue;
+        const collision = occupied.some(other => box.l < other.r + 3 && box.r + 3 > other.l && box.t < other.b + 3 && box.b + 3 > other.t);
+        if (collision && node !== chosen) continue;
+        occupied.push(box); visible.push(node); regions.push({ node, ...box, lines: label.lines });
       }
       this._logicLabelRegions = regions;
       this._logicLabelCamera = `${this.camera.x}/${this.camera.y}/${this.camera.zoom}`;
       return visible;
+    }
+
+    _logicTextWidth(text, fontSize = 13.5) {
+      return Array.from(String(text)).reduce((sum, char) => sum + (char.charCodeAt(0) > 255 ? fontSize : fontSize * 0.57), 0);
+    }
+
+    _logicLabelLines(node, fontSize = 13.5) {
+      const leafPrediction = node.label === 'Prediction' && !this.edges.some(edge => edge.source === node);
+      const maxWidth = this.width < 520 ? 112 : this.width < 900 ? 142 : leafPrediction ? 320 : 190;
+      const lines = [];
+      let line = '', width = 0;
+      Array.from(String(node.name)).forEach(char => {
+        const charWidth = this._logicTextWidth(char, fontSize);
+        if (line && width + charWidth > maxWidth) { lines.push(line); line = char; width = charWidth; }
+        else { line += char; width += charWidth; }
+      });
+      if (line || !lines.length) lines.push(line);
+      return lines;
+    }
+
+    _logicLabelLayout(node, zoom = this.camera.zoom, cameraX = this.camera.x, cameraY = this.camera.y) {
+      const fontSize = 13.5, lineHeight = 16.5;
+      const lines = this._logicLabelLines(node, fontSize);
+      const width = Math.max(...lines.map(line => this._logicTextWidth(line, fontSize)));
+      const height = lines.length * lineHeight;
+      const x = node.x * zoom + cameraX + node.r * zoom + 7;
+      const centerY = node.y * zoom + cameraY;
+      const top = centerY - height / 2;
+      return {
+        x, lines, width, height,
+        l: x - 2, r: x + width + 3, t: top - 1, b: top + height + 1,
+        lineY: index => top + lineHeight * (index + 0.72)
+      };
     }
 
     _logicEdgeText(edge) {
@@ -902,7 +946,7 @@
       const tipX = geometry.x2 - Math.cos(angle) * inset;
       const tipY = geometry.y2 - Math.sin(angle) * inset;
       const size = 6 / zoom;
-      ctx.globalAlpha = active ? 0.84 : 0.12;
+      ctx.globalAlpha = active ? 0.84 : 0.3;
       ctx.fillStyle = active && this.selected ? '#ef744a' : '#66717a';
       ctx.beginPath();
       ctx.moveTo(tipX, tipY);

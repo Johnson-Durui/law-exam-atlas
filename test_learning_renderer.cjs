@@ -45,13 +45,15 @@ class CanvasStub extends EventTargetStub {
   }
   setAttribute(name, value) { this.attributes.set(name, String(value)); }
   getContext() { return this.context; }
-  getBoundingClientRect() { return { left: 0, top: 0, width: 1600, height: 1000 }; }
+  getBoundingClientRect() { return { left: 0, top: 0, width: this.rectWidth || 1600, height: this.rectHeight || 1000 }; }
   setPointerCapture() {}
 }
 
 class ContainerStub {
-  constructor() { this.clientWidth = 1600; this.clientHeight = 1000; this.child = null; }
-  appendChild(child) { this.child = child; child.parentNode = this; }
+  constructor(width = 1600, height = 1000) { this.clientWidth = width; this.clientHeight = height; this.child = null; }
+  appendChild(child) {
+    this.child = child; child.parentNode = this; child.rectWidth = this.clientWidth; child.rectHeight = this.clientHeight;
+  }
   removeChild(child) { assert.equal(child, this.child); this.child = null; child.parentNode = null; }
   getBoundingClientRect() { return { width: this.clientWidth, height: this.clientHeight }; }
 }
@@ -108,6 +110,12 @@ function verifyFirstFrame(view, payload, title) {
     assert.ok(region.l >= 0 && region.r <= view.width && region.t >= 0 && region.b <= view.height,
       `${title}: long label should fit viewport (${region.node.name})`);
   }
+  for (let i = 0; i < view._logicLabelRegions.length; i += 1) {
+    for (let j = i + 1; j < view._logicLabelRegions.length; j += 1) {
+      assert.equal(intersects(view._logicLabelRegions[i], view._logicLabelRegions[j], 2), false,
+        `${title}: node labels overlap (${view._logicLabelRegions[i].node.name}/${view._logicLabelRegions[j].node.name})`);
+    }
+  }
   const relationLabels = relationBoxes(view);
   for (const relation of relationLabels) {
     for (const nodeLabel of view._logicLabelRegions) {
@@ -151,9 +159,10 @@ for (const item of cases) {
   scheduler.flush();
   const relationLabels = verifyFirstFrame(view, item.payload, item.title);
   const svg = view.exportSVG();
+  const svgText = svg.replace(/<[^>]+>/g, '');
   assert.match(svg, /id="logic-arrow"/, `${item.title}: arrows should be exported`);
   assert.doesNotMatch(svg, /#367e96|#61988a|#848968|#459687/i, `${item.title}: old green or cyan palette should not return`);
-  for (const name of item.required) assert.ok(svg.includes(name), `${item.title}: missing ${name}`);
+  for (const name of item.required) assert.ok(svgText.includes(name), `${item.title}: missing ${name}`);
   const output = path.join(ROOT, 'snapshots', `${item.title}.svg`);
   fs.mkdirSync(path.dirname(output), { recursive: true });
   fs.writeFileSync(output, svg, 'utf8');
@@ -184,4 +193,66 @@ assert.ok(cases[3].payload.nodes.filter(node => node.labels.includes('Step')).le
   'focused learning route should expose its full step sequence');
 
 view.destroy();
-console.log(JSON.stringify({ ok: true, pathway: firstPathway, snapshots }, null, 2));
+
+const focused = learning.forecast({ focus: 'forecast-cr-01' });
+const narrowContainer = new ContainerStub(835, 573);
+const narrowView = new global.LawGraphView(narrowContainer, { presentation: 'dense' });
+narrowView.setData(focused);
+scheduler.flush();
+narrowView.select('forecast-cr-01');
+scheduler.flush();
+verifyFirstFrame(narrowView, focused, '835px选中考向');
+const narrowIds = new Set(narrowView._logicLabelRegions.map(region => region.node.id));
+assert.ok(narrowIds.has('q-2022-base-3') && narrowIds.has('q-2025-base-57'),
+  'selected prediction should keep non-neighbour evidence labels readable');
+const narrowSvg = narrowView.exportSVG();
+assert.match(narrowSvg, /opacity="0\.68"/, 'non-neighbour logic nodes should remain visible after selection');
+assert.match(narrowSvg, /opacity="0\.28"/, 'non-neighbour logic edges should remain visible after selection');
+assert.ok(narrowSvg.replace(/<[^>]+>/g, '').includes('故意、过失与认识错误的连续判断'));
+const narrowOutput = path.join(ROOT, 'snapshots', '2027考向分支_窄版.svg');
+fs.writeFileSync(narrowOutput, narrowSvg, 'utf8');
+narrowView.destroy();
+
+const phoneContainer = new ContainerStub(390, 500);
+const phoneView = new global.LawGraphView(phoneContainer, { presentation: 'dense' });
+phoneView.setData(focused);
+scheduler.flush();
+phoneView.select('forecast-cr-01');
+scheduler.flush();
+assert.ok(phoneView.camera.zoom >= 0.55, 'phone view should preserve a readable local zoom');
+assert.ok(phoneView._logicLabelRegions.length >= 2, 'phone view should expose a useful local part of the branch');
+for (let i = 0; i < phoneView._logicLabelRegions.length; i += 1) {
+  for (let j = i + 1; j < phoneView._logicLabelRegions.length; j += 1) {
+    assert.equal(intersects(phoneView._logicLabelRegions[i], phoneView._logicLabelRegions[j], 2), false,
+      'visible phone labels should never overlap');
+  }
+}
+phoneView.destroy();
+
+const firstScreenContainer = new ContainerStub(1280, 573);
+const firstScreenView = new global.LawGraphView(firstScreenContainer, { presentation: 'dense' });
+const forecastOverview = learning.forecast();
+firstScreenView.setData(forecastOverview);
+scheduler.flush();
+const firstScreenLabels = new Map(firstScreenView._logicLabelRegions.map(region => [region.node.id, region]));
+for (const prediction of learningData.predictions) {
+  assert.ok(firstScreenLabels.has(prediction.id), `1280×573 first screen should show ${prediction.id}`);
+  assert.equal(firstScreenLabels.get(prediction.id).lines.length, 1,
+    `leaf prediction should remain on one line at 1280×573 (${prediction.title})`);
+}
+for (let i = 0; i < firstScreenView._logicLabelRegions.length; i += 1) {
+  for (let j = i + 1; j < firstScreenView._logicLabelRegions.length; j += 1) {
+    assert.equal(intersects(firstScreenView._logicLabelRegions[i], firstScreenView._logicLabelRegions[j], 2), false,
+      '1280×573 first-screen labels should not overlap');
+  }
+}
+firstScreenView.destroy();
+
+console.log(JSON.stringify({
+  ok: true,
+  pathway: firstPathway,
+  snapshots,
+  narrow: { width: 835, height: 573, labels: focused.nodes.length, output: narrowOutput },
+  phone: { width: 390, height: 500, mode: 'readable local view' },
+  firstScreen: { width: 1280, height: 573, predictions: learningData.predictions.length }
+}, null, 2));

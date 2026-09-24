@@ -25,6 +25,8 @@ full_html=full_html.replace('data-mode="graph" aria-pressed="false"','data-mode=
 
 readme=f'''# 法硕关系网
 
+[打开在线关系网](https://johnson-durui.github.io/law-exam-atlas/) · [GitHub 仓库](https://github.com/Johnson-Durui/law-exam-atlas)
+
 一个可离线运行的法硕（非法学）真题与知识网络。白底、黑灰文字、蓝色导航与橙色预测分支，无外部依赖。
 
 ## 三个入口
@@ -62,7 +64,7 @@ readme=f'''# 法硕关系网
 
 用 Node 运行 `test_model.cjs`、`test_learning_model.cjs`、`test_renderer.cjs`、`test_dense_renderer.cjs`、`test_logic_renderer.cjs`、`test_learning_renderer.cjs`、`test_app.cjs`。
 
-模型测试检查 ID、关系端点和筛选；页面与渲染测试使用最小 DOM/Canvas 替身。实际数据导出的 SVG/PNG 用于布局检查，这些不是浏览器端到端截图。发布后另核对 GitHub Pages 构建状态和线上静态资源。
+模型测试检查 ID、关系端点和筛选；页面与渲染测试使用最小 DOM/Canvas 替身。实际数据导出的 SVG/PNG 用于布局检查，这些不是浏览器端到端截图。发布后另核对 GitHub Pages 构建状态和线上静态资源，并在公开页面检查入口切换、点击考向展开详情等交互。
 '''
 (ROOT/'README.md').write_text(readme,encoding='utf-8')
 

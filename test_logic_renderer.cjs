@@ -175,7 +175,7 @@ assert.match(svg, /fill="#ffffff"/);
 assert.match(svg, /id="logic-arrow"/);
 assert.match(svg, /marker-end="url\(#logic-arrow\)"/);
 assert.match(svg, /推导考向/);
-assert.match(svg, /行为效力与责任衔接/);
+assert.ok(svg.replace(/<[^>]+>/g, '').includes('行为效力与责任衔接'));
 assert.doesNotMatch(svg, /#61988a|#848968|#459687/i, 'retired green palette must not leak into logic output');
 
 const snapshot = path.join(ROOT, 'snapshots', '逻辑关系网.svg');
