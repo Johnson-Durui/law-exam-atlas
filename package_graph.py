@@ -1,18 +1,23 @@
 """Create the portable HTML, an annotated SVG export, and a reproducible ZIP."""
 from pathlib import Path
 from collections import Counter
-import json, re, zipfile
+import json, re, zipfile, hashlib
 
 ROOT=Path(__file__).resolve().parent
 data=json.loads((ROOT/'data/graph.json').read_text(encoding='utf-8'))
 meta=data['meta']
 status=Counter(n['attributes']['extractionStatus'] for n in data['nodes'] if n['labels']==['Question'])
 html=(ROOT/'index.html').read_text(encoding='utf-8')
-html=html.replace('<link rel="stylesheet" href="style.css">','<style>'+(ROOT/'style.css').read_text(encoding='utf-8')+'</style>')
-for script in ['data/graph.js','data/learning.js','graph-model.js','learning-model.js','graph-view.js','app.js']:
+scripts=['data/graph.js','data/learning.js','graph-model.js','learning-model.js','graph-view.js','app.js']
+for asset in ['style.css',*scripts]:
+    version=hashlib.sha256((ROOT/asset).read_bytes()).hexdigest()[:12]
+    html=re.sub(r'"'+re.escape(asset)+r'(?:\?v=[a-f0-9]+)?"',lambda m:'"'+asset+'?v='+version+'"',html)
+(ROOT/'index.html').write_text(html,encoding='utf-8')
+html=re.sub(r'<link rel="stylesheet" href="style\.css(?:\?v=[a-f0-9]+)?">',lambda m:'<style>'+(ROOT/'style.css').read_text(encoding='utf-8')+'</style>',html)
+for script in scripts:
     content=(ROOT/script).read_text(encoding='utf-8')
     content=re.sub(r'</script',lambda m:r'<\/script',content,flags=re.I)
-    html=html.replace(f'<script src="{script}"></script>','<script>'+content+'</script>')
+    html=re.sub(r'<script src="'+re.escape(script)+r'(?:\?v=[a-f0-9]+)?"></script>',lambda m:'<script>'+content+'</script>',html)
 # A portable file must also export data without relying on adjacent files.
 html=html.replace('href="data/graph.json" download','href="#" id="download-data" download')
 html=html.replace('</body>','<script>document.getElementById("download-data").addEventListener("click",function(e){e.preventDefault();const u=URL.createObjectURL(new Blob([JSON.stringify(window.LAW_GRAPH)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="法硕真题图谱.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});</script></body>')
