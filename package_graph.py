@@ -32,6 +32,8 @@ readme=f'''# 法硕关系网
 
 [打开在线关系网](https://johnson-durui.github.io/law-exam-atlas/) · [GitHub 仓库](https://github.com/Johnson-Durui/law-exam-atlas)
 
+项目维护与交接：[产品设计档案](DESIGN.md) · [快速交接](HANDOFF.md) · [协作约定](AGENTS.md)
+
 一个可离线运行的法硕真题与知识网络。白底、黑灰文字、蓝色导航与橙色预测分支，无外部依赖。
 
 [![法硕真题关系网示意图：真题、科目与候选考点之间的联系](assets/relationship-network.png)](https://johnson-durui.github.io/law-exam-atlas/)
