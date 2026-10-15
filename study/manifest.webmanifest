@@ -1,0 +1,37 @@
+{
+  "id": "/law-exam-atlas/study/",
+  "start_url": "/law-exam-atlas/study/",
+  "scope": "/law-exam-atlas/study/",
+  "name": "法硕冲刺学习工作台",
+  "short_name": "法硕冲刺",
+  "description": "五科练习、押题套卷、错题复习与主观题自查。",
+  "lang": "zh-CN",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#f4f6f9",
+  "theme_color": "#172944",
+  "icons": [
+    {
+      "src": "/law-exam-atlas/study/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/law-exam-atlas/study/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/law-exam-atlas/study/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
