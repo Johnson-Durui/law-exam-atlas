@@ -1,0 +1,37 @@
+MIT License (Software Source Code Only — See Corpus Rights Notice Below)
+
+Copyright (c) 2026 law-exam-atlas contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of the software source code and authored study-route code in this repository
+(including HTML, CSS, JavaScript, Python build/validation scripts, and automated
+tests), to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom
+the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice, this permission notice, and the corpus boundary
+notice below shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+Corpus & Examination Material Rights Notice (See NOTICE.md)
+-------------------------------------------------------------------------------
+This MIT license applies strictly to the independent software implementation
+(HTML, Canvas/SVG graph renderer, query/learning models, and Python tooling).
+
+Past-paper examination questions and source metadata in `data/` are extracted
+from historical JM (Master of Laws) examination papers for personal study and
+structural research. Copyright and related rights in original examination
+materials remain with their respective rights holders; publishing this
+repository's code and candidate index does not transfer or alter any rights in
+the underlying examination papers. Original PDF papers are not distributed in
+this repository. For complete provenance and academic boundaries, see NOTICE.md.

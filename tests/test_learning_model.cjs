@@ -1,11 +1,11 @@
 /* Pure data and topology checks for authored learning and forecast graphs. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const root=__dirname;
+const root=path.resolve(__dirname,'..');
 const examData=JSON.parse(fs.readFileSync(path.join(root,'data/graph.json'),'utf8'));
 const learningData=JSON.parse(fs.readFileSync(path.join(root,'data/learning.json'),'utf8'));
-const examModel=require('./graph-model.js').create(examData);
-const model=require('./learning-model.js').create(learningData,examModel);
+const examModel=require(path.join(root,'graph-model.js')).create(examData);
+const model=require(path.join(root,'learning-model.js')).create(learningData,examModel);
 
 assert.equal(learningData.meta.targetYear,2027);
 assert.equal(learningData.predictions.length,20);

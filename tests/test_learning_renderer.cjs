@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, '..');
 const NODE = path.join(ROOT, 'graph-model.js');
 const LEARNING = path.join(ROOT, 'learning-model.js');
 

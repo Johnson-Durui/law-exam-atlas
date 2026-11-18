@@ -1,6 +1,11 @@
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+Thumbs.db
 *.zip
+dist/
 .publish/
 snapshots/
 verification.json
@@ -8,4 +13,3 @@ data/corpus.json
 data/corpus.js
 data/extraction_report.json
 法硕真题关系网_*.html
-

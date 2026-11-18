@@ -73,9 +73,9 @@ flowchart LR
 
 下图来自现有项目，供理解视觉方向；它们是静态示意，功能以代码为准。
 
-[![真题关系网示意图](assets/relationship-network.png)](https://johnson-durui.github.io/law-exam-atlas/)
+[![真题关系网示意图](../assets/relationship-network.png)](https://johnson-durui.github.io/law-exam-atlas/)
 
-[![2027 考向分支示意图](assets/forecast-branch.png)](https://johnson-durui.github.io/law-exam-atlas/#forecast-cr-01)
+[![2027 考向分支示意图](../assets/forecast-branch.png)](https://johnson-durui.github.io/law-exam-atlas/#forecast-cr-01)
 
 ## 5. 核心交互与状态
 
@@ -104,7 +104,9 @@ flowchart LR
 | 全屏调用失败 | 使用全窗口布局，不让核心操作失效 |
 | 数据或模型异常 | 保留现有校验与错误提示，不静默填造题目 |
 
-搜索输入使用约 180 ms 防抖，浮动搜索与目录搜索同步。图谱支持拖拽、缩放、节点/边选择、适配视野、标签开关及 SVG 导出。
+搜索输入使用约 180 ms 防抖，浮动搜索与目录搜索同步。此外提供全局快速跳转面板（快捷键 `/` 或 `Ctrl+K`），可跨 20 个考向、80 个考点、5 条审题路线与 1,579 道真题按编号、关键词或缩写子序列即时定位。
+
+在任意 2027 考向或考点详情页中，支持纯本地标记“★ 重点收藏”与“✓ 已复盘”，并在工作台按状态过滤及通过 JSON 导入/导出备份。本地存储访问必须安全包裹，无 `localStorage` 环境自动降级为会话内存存储。图谱支持拖拽、缩放、节点/边选择、适配视野、标签开关及 SVG 导出。
 
 ## 6. 数据事实与解释边界
 
@@ -210,15 +212,15 @@ flowchart LR
 
 | 要修改什么 | 首选文件 | 连带检查 |
 | --- | --- | --- |
-| 页面入口、工具栏、图例 | `index.html`、`style.css`、`app.js` | 页面测试、窄屏、键盘操作 |
+| 页面入口、工具栏、图例 | `index.html`、`style.css`、`app.js` | `tests/test_app.cjs`、`tests/test_study_progress.cjs`、窄屏、键盘操作 |
 | 节点外观、文字、连线、导出 | `graph-view.js` | 相关渲染测试、SVG、点击区域 |
-| 筛选、邻居查询 | `graph-model.js` | `test_model.cjs` |
-| 学习和考向的结构、布局 | `learning-model.js` | 学习模型、逻辑图与页面测试 |
+| 筛选、邻居查询 | `graph-model.js` | `tests/test_model.cjs` |
+| 学习和考向的结构、快搜与进度 | `learning-model.js` | `tests/test_learning_model.cjs`、`tests/test_study_progress.cjs` |
 | 学习步骤、考向理由和练习 | `build_learning.py` | 重新生成 learning，再检查模型与布局 |
 | 考点词表与候选关联 | `data/topics.json`、`build_graph.py` | 重新生成 graph，再生成 learning |
 | 原卷提取问题 | `build_corpus.py` 与原 PDF | corpus → graph → learning；核对原页 |
-| README / 离线包 | `package_graph.py` | README 会被重写；检查离线产物 |
-| 产品规则与交接 | `DESIGN.md`、`HANDOFF.md` | 保持索引、实际实现与记录一致 |
+| README / 离线包 / 资源指纹 | `package_graph.py`、`scripts/validate_data.py` | `README.md` 与 `index.html` 指纹同步；`tests/test_data_pipeline.py` |
+| 产品规则与交接 | `docs/DESIGN.md`、`docs/HANDOFF.md` | 保持索引、实际实现与记录一致 |
 
 重要的覆盖关系：
 
@@ -248,6 +250,6 @@ GitHub Pages 从 `main` 根目录部署，使用 `.nojekyll`，仓库没有自�
 | 小屏与无障碍 | 有适配和键盘入口；仍可补充真机与辅助技术验证 |
 | 分享导航 | 支持初始 hash 深链；完整浏览器历史导航尚未实现 |
 | 后续规模 | 当前为静态图；新增大量材料后再实测性能，不提前引入后端 |
-| 个人学习功能 | 收藏、笔记、进度、答案库是候选，未经本轮要求，不视为待交付功能 |
+| 个人学习功能 | 已支持纯本地“★ 重点收藏”与“✓ 已复盘”进度及 JSON 导入导出；长笔记、云端同步与答案库仍为后续候选 |
 
-这次档案整理不改变产品功能、题库或考向内容。后续对话根据新任务确定范围，完成后更新交接记录；不要把本节候选事项自动变成必须实施的任务。
+后续对话根据新任务确定范围，完成后同步更新本档案与 [HANDOFF.md](HANDOFF.md)；不要把本节未交付候选事项自动变成必须实施的任务。

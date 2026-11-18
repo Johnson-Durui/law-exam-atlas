@@ -1,8 +1,8 @@
 """将可追溯题库与考点词表转换为离线 MiroFish-compatible 图谱。"""
-from pathlib import Path
-from collections import Counter
 import json
 import re
+from collections import Counter
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 
@@ -15,10 +15,10 @@ def build(corpus, topics):
     known_topics = {t['id'] for t in topics}
     nodes, edges = [], []
     def node(uid, name, label, summary='', **attrs):
-        nodes.append(dict(uuid=uid, name=name, labels=[label], summary=summary, attributes=attrs))
+        nodes.append({'uuid': uid, 'name': name, 'labels': [label], 'summary': summary, 'attributes': attrs})
     def edge(a, b, name, fact, **attrs):
-        edges.append(dict(uuid=f'e-{len(edges)+1}', source_node_uuid=a, target_node_uuid=b,
-                          name=name, fact_type=name, fact=fact, attributes=attrs))
+        edges.append({'uuid': f'e-{len(edges)+1}', 'source_node_uuid': a, 'target_node_uuid': b,
+                      'name': name, 'fact_type': name, 'fact': fact, 'attributes': attrs})
     years=sorted({q['year'] for q in questions})
     subjects=sorted({q['subject'] for q in questions})
     types=sorted({q['questionType'] for q in questions})

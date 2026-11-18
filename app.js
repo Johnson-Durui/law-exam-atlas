@@ -3,15 +3,19 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
-  const fmt = n => Number(n).toLocaleString('zh-CN');
+  const fmt = n => (typeof n === 'string' && Number.isNaN(Number(n)) ? n : Number(n).toLocaleString('zh-CN'));
   const kinds = {Question:'真题',Topic:'候选考点',Year:'年份',Subject:'科目',Type:'题型',Forecast:'预测总览',Prediction:'2027 考向',Scenario:'备考情景',Pathway:'学习路线',Step:'审题步骤'};
   const label = n => n.labels[0];
   const badge = (text, warning) => el('span', 'badge' + (warning ? ' warning' : ''), text);
   let model, view, result, selected = null, listLimit = 80, catalogPage = 0, mode = $('workspace').dataset.mode || 'split', labels = true, timer;
-  let learning, layer='exams', studyGraph=null, studyFocus='';
-  const lookup=id=>learning?.byId.get(id)||model.byId.get(id);
+  let learning, layer = 'exams', studyGraph = null, studyFocus = '';
+  let quickItems = [], quickIndex = 0;
+  const lookup = id => learning?.byId.get(id) || model.byId.get(id);
   function button(text, callback, cls) { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', callback); return b; }
   function fail(error) { $('error-banner').hidden = false; $('error-banner').textContent = '图谱未能加载：' + error.message + '。请保留 data 文件夹与网页在一起后重新打开。'; }
+  function openDialog(d) { if (!d) return; if (typeof d.showModal === 'function') { if (!d.open) d.showModal(); } else { d.open = true; d.setAttribute('open', ''); } }
+  function closeDialog(d) { if (!d) return; if (typeof d.close === 'function') d.close(); else { d.open = false; d.removeAttribute('open'); } }
+  function isDialogOpen(d) { return Boolean(d && (d.open || (d.attributes && d.attributes.open !== undefined))); }
   function sourceURL(file, page) {
     if (!file || /^(?:[a-z]+:|[\\/])|(?:^|[\\/])\.\.(?:[\\/]|$)/i.test(file)) return '';
     return '../' + file.split(/[\\/]/).map(encodeURIComponent).join('/') + (page ? '#page=' + Number(page) : '');
@@ -28,6 +32,44 @@
   }
   function counts(root, pairs) { const box = el('div','fact-count'); for (const [value, text] of pairs) { const c=el('div'); c.append(el('strong','',fmt(value)),el('span','',text)); box.append(c); } root.append(box); }
   function metadata(root, pairs) { const box=el('div','metadata'); for (const [key,value] of pairs) box.append(el('span','',key),el('strong','',value)); root.append(box); }
+  function syncProgressBadges() {
+    if (!learning?.progress) return;
+    const s = learning.progress.stats();
+    if ($('progress-button')) {
+      $('progress-button').textContent = '已复盘 ' + s.forecastReviewed + '/' + s.forecastTotal + (s.totalBookmarked ? ' · ★' + s.totalBookmarked : '');
+    }
+    if ($('progress-graph')) {
+      $('progress-graph').textContent = '进度 ' + s.forecastReviewed + '/' + s.forecastTotal;
+    }
+  }
+  function studyActionBar(targetId) {
+    const bar = el('div', 'study-actions');
+    const syncButtons = () => {
+      const bm = learning.progress.isBookmarked(targetId);
+      const rv = learning.progress.isReviewed(targetId);
+      bmBtn.textContent = bm ? '★ 已重点收藏' : '☆ 重点收藏';
+      bmBtn.setAttribute('aria-pressed', String(bm));
+      rvBtn.textContent = rv ? '✓ 已复盘' : '○ 标记已复盘';
+      rvBtn.setAttribute('aria-pressed', String(rv));
+    };
+    const bmBtn = button('', () => {
+      learning.progress.toggleBookmark(targetId);
+      syncButtons();
+      renderCatalog();
+      if (isDialogOpen($('progress-dialog'))) renderProgressDialog();
+    }, 'study-toggle bookmark-toggle');
+    bmBtn.dataset.studyAction = 'bookmark';
+    const rvBtn = button('', () => {
+      learning.progress.toggleReviewed(targetId);
+      syncButtons();
+      renderCatalog();
+      if (isDialogOpen($('progress-dialog'))) renderProgressDialog();
+    }, 'study-toggle review-toggle');
+    rvBtn.dataset.studyAction = 'review';
+    syncButtons();
+    bar.append(bmBtn, rvBtn);
+    return bar;
+  }
   function activate(id) {
     if (!view.select(id)) { const n=lookup(id); if(n) showSelection({type:'node',data:n}); }
   }
@@ -51,7 +93,7 @@
     selected=null;
     const root=heading('EXAM ATLAS / DETAIL','从题目进入知识网络','左侧浏览真题，中间寻找联系，右侧阅读原文。节点旁的文字取自题干；缩放后可看到更多题目标签。');
     counts(root,[[result.questions.length,'当前真题'],[result.nodes.filter(n=>label(n)==='Topic').length,'关联考点'],[result.edges.length,'可见连线']]);
-    for(const [i,t] of ['先搜索一个熟悉的词，例如“正当防卫”，或按科目和年份缩小范围。','点击小节点看原题，点击考点看跨年份题目；选项中出现的词也可能形成候选连线。','遇到断句、乱码或旧法表述，沿 PDF 页码核对原卷。历史试题需结合当年法律背景理解。'].entries()){const s=el('div','tutorial-step');s.append(el('b','',String(i+1).padStart(2,'0')),el('p','',t));root.append(s);}
+    for(const [i,t] of ['先搜索一个熟悉的词，例如“正当防卫”，或按 / 键快速直达任意考点与考向。','点击小节点看原题，点击考点看跨年份题目；选项中出现的词也可能形成候选连线。','遇到断句、乱码或旧法表述，沿 PDF 页码核对原卷。历史试题需结合当年法律背景理解。'].entries()){const s=el('div','tutorial-step');s.append(el('b','',String(i+1).padStart(2,'0')),el('p','',t));root.append(s);}
     root.append(el('h3','','当前题目分布')); yearBars(root,result.questions);
     const review=model.questions.filter(n=>n.attributes.extractionStatus!=='自动提取').length;
     root.append(el('p','notice','已提取 '+fmt(model.questions.length)+' 道，其中 '+fmt(review)+' 道提取待核对。部分年份未能读出题目；下方数量反映已提取内容，不代表历年考频或押题概率。'));
@@ -82,6 +124,7 @@
     counts(root,[[qs.length,'当前关联真题'],[new Set(qs.map(q=>q.attributes.year)).size,'涉及年份']]);
     if(label(n)==='Topic'){
       root.append(badge(n.attributes.subject),badge(n.attributes.chapter));
+      if(learning?.progress)root.append(studyActionBar(n.uuid));
       root.append(el('p','notice','以下试题与本考点存在关键词候选关联，包含题干和选项命中。仍需逐题核对。'));
       root.append(el('h3','','跨知识点连接'));
       const links=model.neighbors(n.uuid).filter(x=>x.edge.attributes?.method==='concept');
@@ -106,6 +149,7 @@
     const a=n.attributes,kind=label(n),root=heading(kinds[kind],n.name,kind==='Prediction'?null:n.summary);
     if(kind==='Prediction'){
       root.append(badge('2027 复习假设',true),badge(a.subject),badge(learning.scenarios.get(a.scenarioId).name));
+      if(learning?.progress)root.append(studyActionBar(n.uuid));
       root.append(el('h3','','可能怎么问'),el('p','intro',a.questionTypes.join(' / ')));
       root.append(el('h3','','为什么串在一起'),el('p','',a.rationale));
       root.append(el('h3','','从零开始怎么做'));
@@ -134,19 +178,30 @@
   }
   function studyOverview(){
     const isForecast=layer==='forecast',root=heading(isForecast?'2027 / 备考假设':'知识 / 审题路线',isForecast?'把考向展开来看':'先知道问什么，再决定答什么',isForecast?'从情景进入分支，再串起知识点和已有真题。点击任意考向，查看复习步骤与练习。':'五科各有一条审题路线。点科目展开步骤，点知识点继续追踪真题与跨科联系。');
-    root.append(el('p','notice',isForecast?learning.data.meta.notice:'箭头表示建议的阅读与判断顺序。跨科联系只作比较，不将历史规则直接套用到现行法。'));
     const rows=(studyGraph?.nodes||[]).filter(n=>isForecast?label(n)==='Prediction':label(n)==='Pathway'&&n.uuid!=='learning-root');
-    rows.forEach(n=>{const b=button('',()=>openStudy(n.uuid),'related-row');b.append(el('strong','',n.name),el('p','',n.summary));root.append(b);});
-    if(!rows.length)root.append(el('p','empty-copy','没有匹配内容。请清除搜索或调整科目。'));
+    if(isForecast&&learning?.progress){
+      const ps=learning.progress.stats();
+      counts(root,[[ps.forecastReviewed+'/'+ps.forecastTotal,'已复盘考向'],[ps.totalBookmarked,'重点收藏'],[rows.length,'当前分支']]);
+    }
+    root.append(el('p','notice',isForecast?learning.data.meta.notice:'箭头表示建议的阅读与判断顺序。跨科联系只作比较，不将历史规则直接套用到现行法。'));
+    rows.forEach(n=>{
+      const b=button('',()=>openStudy(n.uuid),'related-row');
+      const marks=isForecast&&learning?.progress?[learning.progress.isBookmarked(n.uuid)?'★':'',learning.progress.isReviewed(n.uuid)?'✓':''].filter(Boolean).join(' '):'';
+      b.append(el('strong','',n.name+(marks?' · '+marks:'')),el('p','',n.summary));
+      root.append(b);
+    });
+    if(!rows.length)root.append(el('p','empty-copy','没有匹配内容。请清除搜索或调整筛选条件。'));
   }
   function renderStudy(){
-    const f={subject:$('study-subject').value,scenario:$('study-scenario').value,query:$('search').value,focus:studyFocus};
+    const status=$('study-status')?$('study-status').value:'';
+    const f={subject:$('study-subject').value,scenario:$('study-scenario').value,query:$('search').value,focus:studyFocus,status:layer==='forecast'?status:''};
     studyGraph=layer==='forecast'?learning.forecast(f):learning.learning(f);
     view.setData(studyGraph);view.setLabels(labels);result=model.filter({});
     $('graph-empty').hidden=studyGraph.nodes.length!==0;
     if($('graph-empty').firstChild)$('graph-empty').firstChild.textContent='没有匹配的考向或学习路线。';
     $('study-back').hidden=!studyFocus;$('peek-card').hidden=true;
-    $('summary').textContent=layer==='forecast'?'2027 · '+learning.data.predictions.length+' 个复习假设 · 3 种情景':'五科学习路线 · 点击步骤查看考点';
+    const ps=learning.progress.stats();
+    $('summary').textContent=layer==='forecast'?'2027 · '+learning.data.predictions.length+' 个复习假设 · 3 种情景 · 已复盘 '+ps.forecastReviewed+'/'+ps.forecastTotal:'五科学习路线 · 点击步骤查看考点';
     $('study-context').textContent=studyFocus?(layer==='forecast'?'情景 → 考向 → 考点 → 真题词语线索':'审题顺序 → 知识点 → 真题'):(layer==='forecast'?'2027 复习假设 · 点击橙色分支展开':'学习顺序 · 点击科目展开');
     selected=null;studyOverview();renderCatalog();
     if(studyFocus)activate(studyFocus);
@@ -156,6 +211,7 @@
     $('search').value='';$('full-search').value='';
     for(const name of ['exams','learning','forecast'])$('layer-'+name).setAttribute('aria-pressed',String(name===next));
     $('study-controls').hidden=next==='exams';$('study-context').hidden=next==='exams';$('study-scenario').hidden=next!=='forecast';
+    if($('study-status'))$('study-status').hidden=next!=='forecast';
     $('graph-title').textContent=next==='forecast'?'2027 考向':next==='learning'?'知识逻辑':'真题关系网';
     $('catalog-title').textContent=next==='forecast'?'考向分支':next==='learning'?'学习路线':'真题目录';
     $('search').placeholder=$('full-search').placeholder=next==='exams'?'搜索题干、考点或年份':'搜索考向、知识点或科目';
@@ -196,14 +252,32 @@
     if($('peek-card'))$('peek-card').hidden=true;
     overview(); renderCatalog(); if(mode==='list')renderList();
   }
-  function clear() { $('search').value='';if($('full-search'))$('full-search').value='';$('subject').value='';$('type').value='';$('from').value=model.data.meta.yearFrom;$('to').value=model.data.meta.yearTo;studyFocus='';$('study-subject').value='';$('study-scenario').value='';apply(); }
+  function clear() {
+    $('search').value='';if($('full-search'))$('full-search').value='';
+    $('subject').value='';$('type').value='';
+    $('from').value=model.data.meta.yearFrom;$('to').value=model.data.meta.yearTo;
+    studyFocus='';$('study-subject').value='';$('study-scenario').value='';
+    if($('study-status'))$('study-status').value='';
+    apply();
+  }
   function sortedQuestions(){return [...result.questions].sort((a,b)=>b.attributes.year-a.attributes.year||a.attributes.paper.localeCompare(b.attributes.paper)||a.attributes.number-b.attributes.number);}
   function renderCatalog(){
     const holder=$('catalog-list');if(!holder)return;
     if(layer!=='exams'){
       holder.replaceChildren();const rows=(studyGraph?.nodes||[]).filter(n=>layer==='forecast'?label(n)==='Prediction':label(n)==='Pathway'&&n.uuid!=='learning-root');
       const candidates=rows;
-      for(const n of candidates){const b=button('',()=>openStudy(n.uuid),'catalog-row');b.append(el('strong','',n.name),el('span','',n.attributes.subject||''),el('small','',layer==='forecast'?'复习假设 · 点击展开':'审题顺序 · 点击展开'));holder.append(b);}
+      for(const n of candidates){
+        const b=button('',()=>openStudy(n.uuid),'catalog-row');
+        const tags=[];
+        if(layer==='forecast'&&learning?.progress){
+          if(learning.progress.isBookmarked(n.uuid))tags.push('★ 重点收藏');
+          if(learning.progress.isReviewed(n.uuid))tags.push('✓ 已复盘');
+        }
+        tags.push(layer==='forecast'?'复习假设 · 点击展开':'审题顺序 · 点击展开');
+        b.append(el('strong','',n.name),el('span','',n.attributes.subject||''),el('small','',tags.join(' · ')));
+        b.setAttribute('aria-current',String(selected?.data.uuid===n.uuid));
+        holder.append(b);
+      }
       if(!candidates.length)holder.append(el('p','empty-copy','暂无匹配内容'));
       $('catalog-count').textContent=candidates.length+' 条';$('catalog-page').textContent='目录';$('catalog-prev').disabled=true;$('catalog-next').disabled=true;return;
     }
@@ -254,7 +328,7 @@
       else if(document.documentElement?.requestFullscreen)await document.documentElement.requestFullscreen();
       else throw Error('Fullscreen API unavailable');
       fullscreenState();
-    } catch(error) {
+    } catch(_error) {
       $('fullscreen-status').textContent='当前浏览器未允许系统全屏，关系网已铺满窗口。';$('fullscreen-status').hidden=false;
       fullscreenState();
     }
@@ -263,7 +337,136 @@
     const root=$('coverage-content');root.replaceChildren();
     root.append(el('p','intro','共 '+model.data.sources.length+' 条来源记录。合订本的题量为该册合计；0 题表示没有可用题目入库。网站仅附提取题文和来源信息；离线版可在原目录打开 PDF。'));
     for(const s of model.data.sources){const row=el('div','source-row');const info=el('div');info.append(sourceLink(s.file,null,(s.year||'2005—2009')+' · '+s.paper+' · '+s.kind),el('small','',s.notes||''));row.append(info,el('span','',s.extractedCount+' 题'),el('span','',s.status));root.append(row);}
-    const dialog=$('coverage-dialog');if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+    openDialog($('coverage-dialog'));
+  }
+  function jumpToResult(item) {
+    if (!item) return;
+    closeDialog($('quick-jump-dialog'));
+    closeDialog($('progress-dialog'));
+    if (item.kind === 'Prediction' || item.kind === 'Pathway') {
+      openStudy(item.id);
+      return;
+    }
+    if (layer !== 'exams') setLayer('exams');
+    if (!result.nodes.some(n => n.uuid === item.id)) clear();
+    activate(item.id);
+    if (mode === 'graph') {
+      $('workspace').dataset.detail = 'open';
+      if ($('peek-card')) $('peek-card').hidden = true;
+    }
+  }
+  function renderQuickJump() {
+    const holder = $('quick-jump-list');
+    if (!holder || !learning?.quickSearch) return;
+    const query = $('quick-jump-input') ? $('quick-jump-input').value : '';
+    quickItems = learning.quickSearch(query, { limit: 18 });
+    quickIndex = Math.max(0, Math.min(quickIndex, Math.max(0, quickItems.length - 1)));
+    holder.replaceChildren();
+    quickItems.forEach((item, idx) => {
+      const row = button('', () => jumpToResult(item), 'quick-row');
+      row.setAttribute('role', 'option');
+      row.setAttribute('aria-selected', String(idx === quickIndex));
+      row.dataset.targetId = item.id;
+      const head = el('div', 'quick-row-head');
+      const marks = [item.bookmarked ? '★' : '', item.reviewed ? '✓' : ''].filter(Boolean).join(' ');
+      head.append(badge(item.badge, item.kind === 'Prediction'), el('strong', '', item.title + (marks ? ' · ' + marks : '')));
+      row.append(head, el('small', '', item.subtitle));
+      holder.append(row);
+    });
+    if (!quickItems.length) {
+      holder.append(el('p', 'empty-copy', '未找到匹配的考向、考点、审题路线或真题。'));
+    }
+  }
+  function openQuickJump(initialQuery) {
+    const dialog = $('quick-jump-dialog');
+    if (!dialog) return;
+    if ($('quick-jump-input') && initialQuery !== undefined) {
+      $('quick-jump-input').value = String(initialQuery);
+    }
+    quickIndex = 0;
+    renderQuickJump();
+    openDialog(dialog);
+    if ($('quick-jump-input')) $('quick-jump-input').focus();
+  }
+  function setProgressFeedback(message, isWarning = false) {
+    const box = $('progress-feedback');
+    if (!box) return;
+    box.hidden = !message;
+    box.className = 'progress-feedback' + (isWarning ? ' warning' : '');
+    box.textContent = message || '';
+  }
+  function renderProgressDialog() {
+    const sumHolder = $('progress-summary');
+    const listsHolder = $('progress-lists');
+    if (!sumHolder || !listsHolder || !learning?.progress) return;
+    const s = learning.progress.stats();
+    if ($('progress-storage-note')) {
+      $('progress-storage-note').textContent = s.persistent
+        ? '复习标记仅保存在当前浏览器本地存储，不上传任何服务器。建议定期导出 JSON 备份。'
+        : '当前运行环境未开放持久化本地存储，标记仅在本次会话保留；离开前可导出 JSON 保存。';
+    }
+    sumHolder.replaceChildren();
+    counts(sumHolder, [
+      [s.forecastReviewed + '/' + s.forecastTotal, '已复盘 2027 考向'],
+      [s.topicReviewed + '/' + s.topicTotal, '已复盘考点'],
+      [s.totalBookmarked, '重点收藏总数'],
+    ]);
+    listsHolder.replaceChildren();
+    const appendGroup = (title, ids, emptyText) => {
+      listsHolder.append(el('h3', '', title + ' · ' + ids.length));
+      if (!ids.length) {
+        listsHolder.append(el('p', 'empty-copy', emptyText));
+        return;
+      }
+      for (const id of ids) {
+        const n = lookup(id);
+        if (!n) continue;
+        const k = label(n);
+        const row = button('', () => jumpToResult({ id: n.uuid, kind: k }), 'related-row');
+        const sub = n.attributes?.subject || '';
+        row.append(el('strong', '', n.name + (sub ? ' · ' + sub : '')), el('span', '', kinds[k] || k));
+        listsHolder.append(row);
+      }
+    };
+    appendGroup('★ 重点收藏', learning.progress.listBookmarked(), '尚未收藏考向或考点。可在任意考向或考点详情中点击“☆ 重点收藏”。');
+    const unreviewedForecasts = learning.data.predictions.map(p => p.id).filter(id => !learning.progress.isReviewed(id));
+    appendGroup('○ 待复盘 2027 考向', unreviewedForecasts, '全部 20 个考向均已标记复盘！');
+    appendGroup('✓ 已复盘项目', learning.progress.listReviewed(), '尚未标记已复盘项目。完成练习与原题核对后可点击“○ 标记已复盘”。');
+  }
+  function openProgressDialog() {
+    setProgressFeedback('');
+    renderProgressDialog();
+    openDialog($('progress-dialog'));
+  }
+  function exportProgress() {
+    const json = learning.progress.exportJSON();
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = el('a');
+    a.href = url;
+    a.download = '法硕复习进度.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setProgressFeedback('已导出本地复习进度 JSON。');
+  }
+  function importProgressText(rawText) {
+    try {
+      const s = learning.progress.importJSON(rawText);
+      if (layer === 'exams') {
+        if (selected?.type === 'node') showSelection(selected);
+        renderCatalog();
+      } else {
+        const keepFocus = studyFocus;
+        renderStudy();
+        if (keepFocus) activate(keepFocus);
+      }
+      renderProgressDialog();
+      setProgressFeedback('导入成功：已复盘 ' + s.forecastReviewed + '/' + s.forecastTotal + ' 考向，重点收藏 ' + s.totalBookmarked + ' 项。');
+      return true;
+    } catch (err) {
+      setProgressFeedback('导入失败：' + err.message, true);
+      return false;
+    }
   }
   function downloadGraph() {
     const blob=new Blob([view.exportSVG()],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='法硕真题关系网.svg';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -271,6 +474,8 @@
   try {
     model=LawGraphModel.create(window.LAW_GRAPH);
     learning=LawLearningModel.create(window.LAW_LEARNING_DATA,model);
+    learning.progress.onChange(syncProgressBadges);
+    syncProgressBadges();
     $('selection-status').setAttribute('role','status');
     for(const id of ['from','to'])for(const y of model.data.meta.years){const o=el('option','',String(y));o.value=y;$(id).append(o);}
     for(const [id,values] of [['subject',model.data.meta.subjects],['type',model.data.meta.types]])for(const v of values){const o=el('option','',v);o.value=v;$(id).append(o);}
@@ -286,22 +491,71 @@
     for(const id of ['from','to'])$(id).addEventListener('change',()=>{if(+$('from').value>+$('to').value)$(id==='from'?'to':'from').value=$(id).value;apply();});
     $('clear').addEventListener('click',clear);$('empty-clear').addEventListener('click',clear);
     for(const name of ['exams','learning','forecast'])$('layer-'+name).addEventListener('click',()=>setLayer(name));
-    for(const id of ['study-subject','study-scenario'])$(id).addEventListener('change',()=>{studyFocus='';closeOverlays();renderStudy();});
+    for(const id of ['study-subject','study-scenario','study-status'])if($(id))$(id).addEventListener('change',()=>{studyFocus='';closeOverlays();renderStudy();});
     $('study-back').addEventListener('click',()=>{studyFocus='';closeOverlays();renderStudy();if(window.history?.replaceState)window.history.replaceState(null,'',window.location.pathname);});
     $('fit').addEventListener('click',()=>view.fit());$('reset').addEventListener('click',apply);
     $('labels').addEventListener('click',()=>{labels=!labels;view.setLabels(labels);$('labels').setAttribute('aria-pressed',String(labels));});
     $('export').addEventListener('click',downloadGraph);$('coverage-button').addEventListener('click',showCoverage);
-    $('close-dialog').addEventListener('click',()=>{const d=$('coverage-dialog');if(d.close)d.close();else d.removeAttribute('open');});
+    $('close-dialog').addEventListener('click',()=>closeDialog($('coverage-dialog')));
+    for(const id of ['quick-jump-open','quick-jump-graph'])if($(id))$(id).addEventListener('click',()=>openQuickJump(''));
+    if($('close-quick-jump'))$('close-quick-jump').addEventListener('click',()=>closeDialog($('quick-jump-dialog')));
+    if($('quick-jump-input')){
+      $('quick-jump-input').addEventListener('input',()=>{quickIndex=0;renderQuickJump();});
+      $('quick-jump-input').addEventListener('keydown',event=>{
+        if(event.key==='ArrowDown'){if(event.preventDefault)event.preventDefault();if(quickItems.length){quickIndex=(quickIndex+1)%quickItems.length;renderQuickJump();}}
+        else if(event.key==='ArrowUp'){if(event.preventDefault)event.preventDefault();if(quickItems.length){quickIndex=(quickIndex-1+quickItems.length)%quickItems.length;renderQuickJump();}}
+        else if(event.key==='Enter'){if(event.preventDefault)event.preventDefault();if(quickItems[quickIndex])jumpToResult(quickItems[quickIndex]);}
+        else if(event.key==='Escape'){if(event.preventDefault)event.preventDefault();closeDialog($('quick-jump-dialog'));}
+      });
+    }
+    for(const id of ['progress-button','progress-graph'])if($(id))$(id).addEventListener('click',openProgressDialog);
+    if($('close-progress'))$('close-progress').addEventListener('click',()=>closeDialog($('progress-dialog')));
+    if($('export-progress'))$('export-progress').addEventListener('click',exportProgress);
+    if($('import-progress-trigger'))$('import-progress-trigger').addEventListener('click',()=>{if($('import-progress-file'))$('import-progress-file').click();});
+    if($('import-progress-file'))$('import-progress-file').addEventListener('change',async event=>{
+      const file=event.target?.files?.[0];if(!file)return;
+      const text=typeof file.text==='function'?await file.text():'';
+      importProgressText(text);
+      event.target.value='';
+    });
+    if($('clear-progress'))$('clear-progress').addEventListener('click',()=>{
+      learning.progress.clear();
+      if(layer!=='exams')renderStudy();else{if(selected?.type==='node')showSelection(selected);renderCatalog();}
+      renderProgressDialog();
+      setProgressFeedback('已清空本地收藏与复盘标记。');
+    });
     $('load-more').addEventListener('click',()=>{listLimit+=80;renderList();});
     if($('catalog-prev'))$('catalog-prev').addEventListener('click',()=>{catalogPage--;renderCatalog();$('catalog-list').scrollTop=0;});
     if($('catalog-next'))$('catalog-next').addEventListener('click',()=>{catalogPage++;renderCatalog();$('catalog-list').scrollTop=0;});
     if($('peek-close'))$('peek-close').addEventListener('click',()=>{$('peek-card').hidden=true;});
     if($('peek-open'))$('peek-open').addEventListener('click',()=>{if(mode==='graph'){$('workspace').dataset.detail='open';$('peek-card').hidden=true;}else setMode('split');$('detail').focus();});
     if($('fullscreen'))$('fullscreen').addEventListener('click',toggleFullscreen);
-    if($('back-workbench'))$('back-workbench').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();}catch(error){/* Keep the workbench reachable if the host prevents exiting. */}setMode('split');$('fullscreen-status').hidden=true;});
+    if($('back-workbench'))$('back-workbench').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();}catch(_error){/* Keep the workbench reachable if the host prevents exiting. */}setMode('split');$('fullscreen-status').hidden=true;});
     if($('graph-filters'))$('graph-filters').addEventListener('click',()=>{const open=$('workspace').dataset.filters!=='open';$('workspace').dataset.filters=open?'open':'closed';$('graph-filters').setAttribute('aria-expanded',String(open));if(open)$('search').focus();});
     if($('graph-detail-close'))$('graph-detail-close').addEventListener('click',()=>{$('workspace').dataset.detail='closed';requestAnimationFrame(()=>requestAnimationFrame(()=>view.fit()));});
-    if(document.addEventListener){document.addEventListener('fullscreenchange',fullscreenState);document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('coverage-dialog').open){closeOverlays();$('peek-card').hidden=true;}});}
+    if(document.addEventListener){
+      document.addEventListener('fullscreenchange',fullscreenState);
+      document.addEventListener('keydown',event=>{
+        const key=String(event.key||'');
+        if((event.ctrlKey||event.metaKey)&&key.toLowerCase()==='k'){
+          if(event.preventDefault)event.preventDefault();
+          openQuickJump('');
+          return;
+        }
+        const tag=(event.target&&event.target.tagName)||'';
+        const typing=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||Boolean(event.target&&event.target.isContentEditable);
+        if(key==='/'&&!typing&&!event.ctrlKey&&!event.metaKey&&!event.altKey){
+          if(event.preventDefault)event.preventDefault();
+          openQuickJump('');
+          return;
+        }
+        if(key==='Escape'){
+          if(isDialogOpen($('quick-jump-dialog'))){closeDialog($('quick-jump-dialog'));return;}
+          if(isDialogOpen($('progress-dialog'))){closeDialog($('progress-dialog'));return;}
+          if(!isDialogOpen($('coverage-dialog'))){closeOverlays();$('peek-card').hidden=true;}
+        }
+      });
+    }
     window.addEventListener('pagehide',event=>{if(!event.persisted){clearTimeout(timer);view.destroy();}});
     $('labels').setAttribute('aria-pressed','true');
     $('corpus-status').textContent=model.data.meta.yearFrom+'—'+model.data.meta.yearTo+' 原卷 · 部分缺卷 / 自动提取';
@@ -309,5 +563,6 @@
     setLayer('forecast');
     const requested=(window.location?.hash||'').slice(1);if(learning.byId.get(requested)?.attributes?.topicIds||learning.data.pathways.some(p=>p.id===requested))openStudy(requested);
     setMode(mode);
+    window.LawAtlasApp={openQuickJump,openProgressDialog,importProgressText,exportProgressJSON:()=>learning.progress.exportJSON(),progress:learning.progress};
   } catch (error) { fail(error); }
 })();

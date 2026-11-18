@@ -5,16 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>法硕关系网 · 真题、知识逻辑与 2027 考向</title>
   <meta name="description" content="沿真题探索法硕知识联系，查看五科审题路线与2027备考考向分支。预测为复习假设，可展开依据与练习。">
-  <link rel="stylesheet" href="style.css?v=1550a2d10280">
+  <link rel="stylesheet" href="style.css?v=08144df146b8">
 </head>
 <body>
   <a class="skip" href="#detail">跳到题目详情</a>
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">法</span><strong>法硕真题关系网</strong><span class="edition">EXAM ATLAS</span></div>
     <nav class="view-tabs" aria-label="视图切换"><button data-mode="graph" aria-pressed="false">全景</button><button data-mode="split" aria-pressed="true">工作台</button><button data-mode="list" aria-pressed="false">题库</button></nav>
-    <button class="text-button" id="coverage-button">来源与覆盖</button>
+    <div class="topbar-tools">
+      <button class="text-button" id="quick-jump-open" title="快速搜索考向、考点、审题路线或真题（快捷键 / 或 Ctrl+K）">快速跳转 <kbd>/</kbd></button>
+      <button class="text-button" id="progress-button" title="查看重点收藏与 2027 考向复盘进度">已复盘 0/20</button>
+      <button class="text-button" id="coverage-button">来源与覆盖</button>
+    </div>
   </header>
-  <div class="summary-bar"><p id="summary" role="status">正在读取本地真题…</p><span>考点连线为关键词候选关联 · 点击节点查看依据</span></div>
+  <div class="summary-bar"><p id="summary" role="status">正在读取本地真题…</p><span>按 / 或 Ctrl+K 快速直达 · 考点连线为关键词候选关联</span></div>
 
   <main id="workspace" data-mode="graph">
     <aside id="catalog" class="catalog-panel" aria-label="真题目录与筛选">
@@ -37,11 +41,11 @@
       <div class="panel-head">
         <div><span class="eyebrow">LAW / CONNECTIONS</span><h2 id="graph-title">法硕关系网</h2><p id="graph-subtitle">沿着问题，读懂联系</p></div>
         <label class="full-search"><span class="sr-only">搜索全屏关系网</span><input id="full-search" type="search" placeholder="搜索题干、考点或年份"></label>
-        <div class="graph-actions"><button id="graph-filters" class="only-panorama" aria-expanded="false">筛选</button><button id="fit">适配</button><button id="reset">重排</button><button id="labels" aria-pressed="false">标签</button><button id="export" title="下载当前关系图 SVG">导出</button><button id="fullscreen" aria-pressed="false">进入全屏</button><button id="back-workbench" class="only-panorama">工作台</button></div>
+        <div class="graph-actions"><button id="quick-jump-graph" title="快速搜索直达考向、考点、路线或真题（快捷键 / 或 Ctrl+K）">跳转 /</button><button id="progress-graph" title="查看重点收藏与复盘进度">进度 0/20</button><button id="graph-filters" class="only-panorama" aria-expanded="false">筛选</button><button id="fit">适配</button><button id="reset">重排</button><button id="labels" aria-pressed="false">标签</button><button id="export" title="下载当前关系图 SVG">导出</button><button id="fullscreen" aria-pressed="false">进入全屏</button><button id="back-workbench" class="only-panorama">工作台</button></div>
       </div>
       <div class="atlas-bar">
         <nav class="atlas-tabs" aria-label="关系网内容"><button id="layer-exams" aria-pressed="false">真题全网</button><button id="layer-learning" aria-pressed="false">知识逻辑</button><button id="layer-forecast" aria-pressed="true">2027 考向 <span>20</span></button></nav>
-        <div id="study-controls" class="study-controls"><label class="sr-only" for="study-subject">考向或路径科目</label><select id="study-subject"><option value="">五科全览</option></select><label class="sr-only" for="study-scenario">预测情景</label><select id="study-scenario"><option value="">全部情景</option></select><button id="study-back" hidden>← 返回全览</button></div>
+        <div id="study-controls" class="study-controls"><label class="sr-only" for="study-subject">考向或路径科目</label><select id="study-subject"><option value="">五科全览</option></select><label class="sr-only" for="study-scenario">预测情景</label><select id="study-scenario"><option value="">全部情景</option></select><label class="sr-only" for="study-status">复习状态</label><select id="study-status"><option value="">全部状态</option><option value="bookmarked">★ 重点收藏</option><option value="unreviewed">○ 待复盘</option><option value="reviewed">✓ 已复盘</option></select><button id="study-back" hidden>← 返回全览</button></div>
       </div>
       <p id="study-context" class="study-context">复习假设 · 点击分支展开</p>
       <div id="graph-host" aria-label="可拖拽和缩放的真题关系图"></div>
@@ -51,7 +55,7 @@
       </section>
       <div class="legend"><span class="eyebrow">科目</span><div><span><i style="--color:#bb633d"></i>刑法</span><span><i style="--color:#345c99"></i>民法</span><span><i style="--color:#6c658e"></i>法理</span><span><i style="--color:#747780"></i>宪法</span><span><i style="--color:#9a6479"></i>法制史</span></div></div>
       <div class="relation-options" role="group" aria-label="显示关系"><label><input type="checkbox" data-relation="候选考点" checked>考点</label><label><input type="checkbox" data-relation="科目" checked>科目</label><label><input type="checkbox" data-relation="年份">年份</label><label><input type="checkbox" data-relation="题型">题型</label></div>
-      <div class="graph-caption"><span id="graph-stats">—</span><span>滚轮缩放 · 拖动画布 · 点击节点或连线</span></div>
+      <div class="graph-caption"><span id="graph-stats">—</span><span>滚轮缩放 · 拖动画布 · 按 / 快速直达</span></div>
       <p id="fullscreen-status" class="fullscreen-status" role="status" hidden></p>
     </section>
 
@@ -60,7 +64,26 @@
   </main>
   <footer class="bottom-bar"><span id="corpus-status">本地原卷 · 来源可追溯</span><span id="selection-status">选择一个节点开始探索</span><a href="data/graph.json" download>下载图谱数据</a></footer>
   <dialog id="coverage-dialog" aria-labelledby="coverage-title"><div class="dialog-head"><h2 id="coverage-title">来源与覆盖</h2><button id="close-dialog" aria-label="关闭来源面板">×</button></div><p class="notice">题目由本地 PDF 自动提取。原卷不可读、题号缺失、解析替代等情况列在这里；没有补造题干，也没有将押题卷混入题库。</p><div id="coverage-content"></div></dialog>
+  <dialog id="quick-jump-dialog" class="quick-dialog" aria-labelledby="quick-jump-title">
+    <div class="dialog-head"><h2 id="quick-jump-title">快速跳转</h2><button id="close-quick-jump" aria-label="关闭快速跳转">×</button></div>
+    <label class="quick-input-wrap"><span aria-hidden="true">⌕</span><input id="quick-jump-input" type="search" placeholder="输入考向、考点、审题路线、题号或缩写（如：正当防卫 / 正防 / cr01 / 2025）" autocomplete="off" aria-label="快速搜索考向、考点、审题路线或真题"></label>
+    <p id="quick-jump-hint" class="quick-hint">↑↓ 选择 · Enter 直达 · Esc 关闭 · 覆盖 20 考向 / 80 考点 / 5 路线 / 1,579 真题</p>
+    <div id="quick-jump-list" class="quick-list" role="listbox" aria-label="快速跳转结果"></div>
+  </dialog>
+  <dialog id="progress-dialog" class="progress-dialog" aria-labelledby="progress-title">
+    <div class="dialog-head"><h2 id="progress-title">本地复习进度与重点收藏</h2><button id="close-progress" aria-label="关闭复习进度面板">×</button></div>
+    <p id="progress-storage-note" class="notice">复习标记仅保存在当前浏览器本地，不上传任何服务器。可导出 JSON 备份或跨设备恢复。</p>
+    <div id="progress-summary"></div>
+    <div class="progress-toolbar">
+      <button id="export-progress" type="button">导出进度 JSON</button>
+      <button id="import-progress-trigger" type="button">导入进度 JSON</button>
+      <input id="import-progress-file" type="file" accept=".json,application/json" hidden>
+      <button id="clear-progress" type="button" class="text-button">清空本地标记</button>
+    </div>
+    <p id="progress-feedback" class="progress-feedback" role="status" hidden></p>
+    <div id="progress-lists"></div>
+  </dialog>
   <div id="error-banner" role="alert" hidden></div>
-  <script src="data/graph.js?v=b3c6335caf3f"></script><script src="data/learning.js?v=ec9b8e96a817"></script><script src="graph-model.js?v=d2e5d7344de2"></script><script src="learning-model.js?v=d881481a2a06"></script><script src="graph-view.js?v=bf0278b98a70"></script><script src="app.js?v=428e6897157f"></script>
+  <script src="data/graph.js?v=e87cde1e8674"></script><script src="data/learning.js?v=acf3efec337a"></script><script src="graph-model.js?v=d2e5d7344de2"></script><script src="learning-model.js?v=eb8cf1b8a17e"></script><script src="graph-view.js?v=bf0278b98a70"></script><script src="app.js?v=82d9fd51b5a1"></script>
 </body>
 </html>

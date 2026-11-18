@@ -1,0 +1,18 @@
+{
+  "name": "law-exam-atlas",
+  "version": "1.2.0",
+  "private": true,
+  "description": "法硕真题关系网 — Zero-dependency offline knowledge graph, five-subject reasoning routes, and 2027 study forecast workbench.",
+  "homepage": "https://johnson-durui.github.io/law-exam-atlas/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Johnson-Durui/law-exam-atlas.git"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "test": "node tests/run_all.cjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

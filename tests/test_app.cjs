@@ -1,7 +1,7 @@
 /* Integration checks using a virtual DOM, not a browser preview. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const root=__dirname,fullEntry=process.argv.includes('--fullscreen');
+const root=path.resolve(__dirname,'..'),fullEntry=process.argv.includes('--fullscreen');
 const html=fs.readFileSync(path.join(root,fullEntry?'法硕真题关系网_全屏版.html':'index.html'),'utf8');
 const graph=JSON.parse(fs.readFileSync(path.join(root,'data/graph.json'),'utf8'));
 const learningData=JSON.parse(fs.readFileSync(path.join(root,'data/learning.json'),'utf8'));
@@ -51,7 +51,7 @@ function boot({protocol='file:',hash=''}={}){
     querySelectorAll:q=>q==='button[data-mode]'?modes:q==='[data-mode]'?[ids.workspace,...modes]:q==='[data-relation]:checked'?relations.filter(x=>x.checked):q==='[data-relation]'?relations:[],
     addEventListener(){},
   };
-  const context={window:null,document,location,history,LawGraphView:View,LawGraphModel:require('./graph-model.js'),LawLearningModel:require('./learning-model.js'),LAW_GRAPH:graph,LAW_LEARNING_DATA:learningData,addEventListener(){},requestAnimationFrame(f){f();return 1;},setTimeout(f){timers.set(++nextTimer,f);return nextTimer;},clearTimeout(id){timers.delete(id);},Blob,URL,console};
+  const context={window:null,document,location,history,LawGraphView:View,LawGraphModel:require(path.join(root,'graph-model.js')),LawLearningModel:require(path.join(root,'learning-model.js')),LAW_GRAPH:graph,LAW_LEARNING_DATA:learningData,addEventListener(){},requestAnimationFrame(f){f();return 1;},setTimeout(f){timers.set(++nextTimer,f);return nextTimer;},clearTimeout(id){timers.delete(id);},Blob,URL,console};
   context.window=context;
   vm.runInNewContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),context,{filename:'app.js'});
   function flush(){for(const fn of [...timers.values()])fn();timers.clear();}

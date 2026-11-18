@@ -15,13 +15,12 @@ import re
 import sys
 import unicodedata
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable
 
 from pypdf import PdfReader
-
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = ROOT / "09.法硕非法学历年真题"
@@ -94,7 +93,7 @@ def fallback_for(year: int, paper: str) -> Path | None:
             continue
         if infer_paper(path) == paper:
             candidates.append(path)
-    return sorted(candidates, key=lambda p: (len(str(p)), str(p)))[0] if candidates else None
+    return min(candidates, key=lambda p: (len(str(p)), str(p))) if candidates else None
 
 
 def extract_pages(path: Path) -> tuple[list[str], list[str]]:
@@ -114,7 +113,7 @@ def extract_pages(path: Path) -> tuple[list[str], list[str]]:
         for page in reader.pages:
             try:
                 layouts.append(page.extract_text(extraction_mode="layout") or "")
-            except Exception:
+            except Exception:  # noqa: BLE001
                 layouts.append(page.extract_text() or "")
 
         def rebuild(split_at: int) -> list[str]:
@@ -159,11 +158,11 @@ def extract_pages(path: Path) -> tuple[list[str], list[str]]:
                 text = left + "\n" + right
             else:
                 text = page.extract_text() or ""
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             errors.append(f"第{index}页普通提取失败: {type(exc).__name__}")
             try:
                 text = page.extract_text(extraction_mode="layout") or ""
-            except Exception as fallback_exc:
+            except Exception as fallback_exc:  # noqa: BLE001
                 errors.append(f"第{index}页layout失败: {type(fallback_exc).__name__}")
                 text = ""
         pages.append(normalize_text(text))
@@ -218,7 +217,7 @@ def bundle_segments(pages: list[str], paper: str) -> list[tuple[int, int, int]]:
     starts: list[tuple[int, int]] = []
     for page_no, text in enumerate(pages, 1):
         for year in range(2005, 2010):
-            if re.search(fr"{year}\s*年法律硕士.*专业{paper[:2]}.*真题", text[:500], re.S):
+            if re.search(fr"{year}\s*年法律硕士.*专业{paper[:2]}.*真题", text[:500], re.DOTALL):
                 starts.append((page_no, year))
                 break
     starts = sorted(set(starts))
@@ -539,7 +538,7 @@ def main() -> int:
     for question in unique_questions:
         year_counts[str(question["year"])][question["paper"]] += 1
 
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(UTC).isoformat()
     corpus = {
         "questions": unique_questions,
         "sources": sorted(sources, key=lambda s: (s.get("year") or 0, s["paper"], s["kind"], s["file"])),

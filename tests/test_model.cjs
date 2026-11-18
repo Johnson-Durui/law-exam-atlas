@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, '..');
 const requested = process.argv[2] || process.env.LAW_GRAPH_DATA;
 const graphPath = path.resolve(requested || path.join(ROOT, 'data', 'graph.json'));
 
